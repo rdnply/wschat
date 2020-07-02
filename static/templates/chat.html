@@ -11,36 +11,35 @@
         <header>
             <button class="trigger">
                 <svg viewBox="0 0 24 24">
-                    <path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z" />
+                    <path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/>
                 </svg>
             </button>
 
-            <input class="searchChats" type="search" placeholder="Search..."/>
+            {{/*            <input class="searchChats" type="search" placeholder="Search..."/>*/}}
         </header>
         <div class="chats">
-            <div class="chatButton active">
-                <div class="chatInfo">
-                    <div class="image my-image">
+            {{/*            <div class="chatButton active">*/}}
+            {{/*                <div class="chatInfo">*/}}
+            {{/*                    <div class="image my-image">*/}}
 
-                    </div>
+            {{/*                    </div>*/}}
 
-                    <p class="name">
-                        Renan Mayrinck
-                    </p>
+            {{/*                    <p class="name">*/}}
+            {{/*                        Renan Mayrinck*/}}
+            {{/*                    </p>*/}}
 
-                    <p class="message">Actually, more ...</p>
-                </div>
+            {{/*                    <p class="message">Actually, more ...</p>*/}}
+            {{/*                </div>*/}}
 
-                <div class="status onTop">
-                    <p class="date">00:02</p>
-                    <p class="count">10</p>
-                    <i class="material-icons read">done_all</i>
-                    <svg class="fixed" viewBox="0 0 24 24">
-                        <path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" />
-                    </svg>
-                </div>
-            </div>
-
+            {{/*                <div class="status onTop">*/}}
+            {{/*                    <p class="date">00:02</p>*/}}
+            {{/*                    <p class="count">10</p>*/}}
+            {{/*                    <i class="material-icons read">done_all</i>*/}}
+            {{/*                    <svg class="fixed" viewBox="0 0 24 24">*/}}
+            {{/*                        <path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" />*/}}
+            {{/*                    </svg>*/}}
+            {{/*                </div>*/}}
+            {{/*            </div>*/}}
             <div class="chatButton">
                 <div class="chatInfo">
                     <div class="image">
@@ -48,19 +47,27 @@
                     </div>
 
                     <p class="name">
-                        Doge
+                        All users
                     </p>
 
-                    <p class="message">Wow!</p>
-                </div>
-
-                <div class="status normal">
-                    <p class="date">Now</p>
-                    <p class="count">42</p>
-                    <i class="material-icons read">done_all</i>
-                    <i class="material-icons fixed">loyalty</i>
+                    <p class="message">Start chatting with all users</p>
                 </div>
             </div>
+            {{ range $key, $value := . }}
+                <div class="chatButton">
+                    <div class="chatInfo">
+                        <div class="image">
+
+                        </div>
+
+                        <p class="name">
+                            {{ $key }}
+                        </p>
+
+                        <p class="message"></p>
+                    </div>
+                </div>
+            {{ end }}
         </div>
     </div>
 
@@ -117,7 +124,12 @@
                 <i class="material-icons d45">attach_file</i>
             </button>
 
-            <input type="text" class="replyMessage" placeholder="Type your message..."/>
+            {{/*            <input type="text" class="replyMessage" placeholder="Type your message..."/>*/}}
+            <form onsubmit="sendMessage(event);">
+                <input type="text" class="replyMessage" placeholder="Type your message..."/>
+            </form>
+
+
 
             <div class="emojiBar">
                 <div class="emoticonType">
@@ -244,7 +256,9 @@
 
     <p class="desc">Switch to the mobile version for a better performance.</p>
 
-    <a href="https://web.telegram.org/#/login"><button class="okay">OK</button></a>
+    <a href="https://web.telegram.org/#/login">
+        <button class="okay">OK</button>
+    </a>
 </section>
 
 <!-- PROFILE OPTIONS OVERLAY -->
@@ -341,33 +355,34 @@
 <div class="alerts">
     Trying to reconnect...
 </div>
-
+<script src="/static/js/main.js"></script>
 <script>
-    function getLoginFromParams() {
-        var url = new URL(location.href);
-        var login = url.searchParams.get("login");
-
-        return login
-    }
-
     window.onload = function () {
         if (window["WebSocket"]) {
             userLogin = getLoginFromParams();
-            conn = new WebSocket("ws://localhost:5000/ws?login="+userLogin);
-            localStorage.removeItem("login");
+            console.log(userLogin)
+            globalVarForWS = new WebSocket("ws://localhost:5000/ws?login=" + userLogin);
 
-            conn.onopen = function () {
+            globalVarForWS.onopen = function () {
                 console.log("WS is opened");
             };
 
-            conn.onclose = function (evt) {
+            globalVarForWS.onclose = function (evt) {
                 console.log("WS is closed");
             };
 
 
-            conn.onmessage = function (evt) {
+            globalVarForWS.onmessage = function (evt) {
                 var msg = JSON.parse(evt.data);
-                console.log(msg);
+                console.log(JSON.stringify(msg))
+                if (msg.login !== undefined) {
+                    console.log(msg.login);
+                    addChatButton(msg)
+                } else if (msg.from !== undefined) {
+                    console.log(msg.from);
+                    receiveMessage(msg);
+                }
+
             };
         } else {
             console.log("Your browser can't use websocket");

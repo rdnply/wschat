@@ -1,29 +1,37 @@
 package socket
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/rdnply/wschat/internal/user"
+	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 const (
-	writeWait    = 10 * time.Second
-	pongWait     = 60 * time.Second
-	pingPeriod   = (pongWait * 9) / 10
-	readBufSize  = 1024
-	writeBufSize = 1024
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	maxMessageSize = 512
+	readBufSize    = 1024
+	writeBufSize   = 1024
 )
 
 type Client struct {
-	hub  *Hub
+	hub *Hub
 	//user *user.User
 	login string
-	conn *websocket.Conn
-	send chan *user.User
+	conn  *websocket.Conn
+	send  chan []byte
 }
+
+var (
+	newline = []byte{'\n'}
+	space   = []byte{' '}
+)
 
 func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
@@ -36,14 +44,27 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				// The hub closed the channel.
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			err := c.conn.WriteJSON(message)
+			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
+				return
+			}
+			w.Write(message)
+
+			// Add queued chat messages to the current websocket message.
+			n := len(c.send)
+			for i := 0; i < n; i++ {
+				w.Write(newline)
+				w.Write(<-c.send)
+			}
+
+			if err := w.Close(); err != nil {
 				return
 			}
 
@@ -54,6 +75,32 @@ func (c *Client) writePump() {
 				return
 			}
 		}
+	}
+}
+
+func (c *Client) readPump() {
+	defer func() {
+		c.hub.unregister <- c
+		c.conn.Close()
+	}()
+
+	c.conn.SetReadLimit(maxMessageSize)
+	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+
+	for {
+		_, message, err := c.conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("error: %v", err)
+			}
+			break
+		}
+		fmt.Println("msg:", message)
+		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+		os.Stdout.Write(message)
+		fmt.Println("read")
+		c.hub.broadcast <- message
 	}
 }
 
@@ -74,8 +121,9 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println(login)
-	client := &Client{hub: hub, login: login, conn: conn, send: make(chan *user.User)}
+	client := &Client{hub: hub, login: login, conn: conn, send: make(chan []byte, 256)}
 	client.hub.register <- client
 
+	go client.readPump()
 	go client.writePump()
 }

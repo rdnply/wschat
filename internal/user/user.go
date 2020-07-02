@@ -1,13 +1,27 @@
 package user
 
+import (
+	"encoding/json"
+)
+
 type User struct {
-	login string
+	Login string `json:"login"`
 }
 
 func New(login string) *User {
 	return &User{
-		login: login,
+		Login: login,
 	}
+}
+
+func ToSend(login string) []byte {
+	u := New(login)
+	b, err := json.Marshal(u)
+	if err != nil {
+		return nil
+	}
+
+	return b
 }
 
 type Storage interface {

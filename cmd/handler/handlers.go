@@ -24,14 +24,20 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) error {
 		})
 	}
 
-	h.userStorage.Add(login)
+	//h.userStorage.Add(login)
 	http.Redirect(w, r, "/chat?login="+login, http.StatusSeeOther)
 
 	return nil
 }
 
 func (h *Handler) chat(w http.ResponseWriter, r *http.Request) error {
-	return renderTemplate(w, h.templates.chat, nil)
+	login := r.URL.Query().Get("login")
+	if login == "" {
+		http.Error(w, "can't find login in url params", http.StatusBadRequest)
+	}
+
+	defer h.userStorage.Add(login)
+	return renderTemplate(w, h.templates.chat, h.userStorage)
 }
 
 func renderTemplate(w io.Writer, tmpl *template.Template, payload interface{}) error {
