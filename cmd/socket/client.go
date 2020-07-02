@@ -1,11 +1,12 @@
 package socket
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
+	"github.com/rdnply/wschat/internal/message"
+	"github.com/rdnply/wschat/internal/user"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -26,6 +27,7 @@ type Client struct {
 	login string
 	conn  *websocket.Conn
 	send  chan []byte
+	//send chan *message.Message
 }
 
 var (
@@ -46,7 +48,6 @@ func (c *Client) writePump() {
 		case message, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
@@ -89,18 +90,39 @@ func (c *Client) readPump() {
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, msg, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
 			break
 		}
-		fmt.Println("msg:", message)
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		os.Stdout.Write(message)
-		fmt.Println("read")
-		c.hub.broadcast <- message
+
+		var u user.User
+		if err := json.Unmarshal(msg, &u); err == nil && u.Login != "" {
+			c.hub.addUser <- &u
+			continue
+		}
+
+		var m message.Message
+		if err := json.Unmarshal(msg, &m); err != nil {
+			log.Printf("error: %v", err)
+		}
+
+		c.hub.broadcast <- &m
+
+		//_, msg, err := c.conn.ReadMessage()
+		//if err != nil {
+		//	if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+		//		log.Printf("error: %v", err)
+		//	}
+		//	break
+		//}
+		//fmt.Println("msg:", msg)
+		//msg = bytes.TrimSpace(bytes.Replace(msg, newline, space, -1))
+		//os.Stdout.Write(msg)
+		//fmt.Println("read")
+		//c.hub.broadcast <- msg
 	}
 }
 
@@ -123,6 +145,7 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	fmt.Println(login)
 	client := &Client{hub: hub, login: login, conn: conn, send: make(chan []byte, 256)}
 	client.hub.register <- client
+	client.hub.addUser <- user.New(login)
 
 	go client.readPump()
 	go client.writePump()
