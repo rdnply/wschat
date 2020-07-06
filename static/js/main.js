@@ -80,16 +80,23 @@ function createReceivedMessage(msg) {
     var div = document.createElement('div');
     div.classList.add('msg');
     div.classList.add('messageReceived');
-    div.innerHTML = msg;
+    div.innerHTML = msg.message;
 
     var span = document.createElement('span');
+    span.classList.add('userName');
+    span.innerHTML = msg.from;
     div.append(span);
 
     return div;
 }
 
 function receiveMessage(msg) {
-    var receivedMsg = createReceivedMessage(msg.message);
+    var receivedMsg = createReceivedMessage(msg);
     var convHistory = document.querySelector('.convHistory');
     convHistory.append(receivedMsg);
+}
+
+function startChat() {
+    var login = this.querySelector('.name');
+
 }

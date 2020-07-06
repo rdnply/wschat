@@ -714,6 +714,15 @@ div[class~="onTop"] > .count {
     background: #FFF;
 }
 
+.messageReceived .userName {
+    display: block;
+    position: absolute;
+    left: 25px;
+    top: 6px;
+    color: #419fd9;
+    user-select: none;
+}
+
 .messageSent {
     float: right;
     background: #effdde;

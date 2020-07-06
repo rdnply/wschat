@@ -47,9 +47,9 @@ func (h *Hub) Run() {
 						delete(h.clients, client)
 						close(client.send)
 					}
+					}
 				}
 
-			}
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)

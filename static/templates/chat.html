@@ -40,14 +40,14 @@
             {{/*                    </svg>*/}}
             {{/*                </div>*/}}
             {{/*            </div>*/}}
-            <div class="chatButton">
+            <div class="chatButton" onclick="startChat()">
                 <div class="chatInfo">
                     <div class="image">
 
                     </div>
 
                     <p class="name">
-                        All users
+                        General chat
                     </p>
 
                     <p class="message">Start chatting with all users</p>
@@ -83,15 +83,20 @@
             </div>
 
             <div class="leftSide">
-                <p class="chatName">Renan Mayrinck <span>@Grisson</span></p>
-                <p class="chatStatus">Online</p>
+                <p class="chatName">General chat</p>
             </div>
+
+{{/*            <div class="leftSide">*/}}
+{{/*                <p class="chatName">Renan Mayrinck <span>@Grisson</span></p>*/}}
+{{/*                <p class="chatStatus">Online</p>*/}}
+{{/*            </div>*/}}
         </div>
 
         <div class="convHistory userBg">
             <!-- CONVERSATION GOES HERE! -->
 
             <div class="msg messageReceived">
+                <span class="userName">User</span>
                 Dude, why no one did this before?
                 <span class="timestamp">00:00</span>
             </div>
