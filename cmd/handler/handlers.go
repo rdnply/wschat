@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"github.com/rdnply/wschat/internal/ehttp"
 	"html/template"
 	"io"
@@ -20,10 +22,9 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) error {
 			Error string
 		}{
 			Login: login,
-			Error: "That login is already exist",
+			Error: "This login is already exist",
 		})
 	}
-
 	//h.userStorage.Add(login)
 	http.Redirect(w, r, "/chat?login="+login, http.StatusSeeOther)
 
@@ -37,7 +38,25 @@ func (h *Handler) chat(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	defer h.userStorage.Add(login)
-	return renderTemplate(w, h.templates.chat, h.userStorage)
+	return renderTemplate(w, h.templates.chat, h.userStorage.GetLogins())
+}
+
+func (h *Handler) getMessages(w http.ResponseWriter, r *http.Request) error {
+	login := r.URL.Query().Get("login")
+	companion := r.URL.Query().Get("companion")
+	if login == "" || companion == "" {
+		http.Error(w, "can't find login in url params", http.StatusBadRequest)
+	}
+
+	messages := h.userStorage.FindMessages(login, companion)
+
+	err := respondJSON(w, messages)
+	if err != nil {
+		detail := fmt.Sprintf("can't make json respond with messages: %v", err)
+		return ehttp.InternalServerErr(detail)
+	}
+
+	return nil
 }
 
 func renderTemplate(w io.Writer, tmpl *template.Template, payload interface{}) error {
@@ -45,6 +64,24 @@ func renderTemplate(w io.Writer, tmpl *template.Template, payload interface{}) e
 	if err != nil {
 		detail := fmt.Sprintf("can't execute template with name: %v: %v", tmpl.Name(), err)
 		return ehttp.InternalServerErr(detail)
+	}
+
+	return nil
+}
+
+func respondJSON(w http.ResponseWriter, payload interface{}) error {
+	response, err := json.Marshal(payload)
+	if err != nil {
+		return errors.Wrapf(err, "can't marshal respond to json")
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+
+	c, err := w.Write(response)
+	if err != nil {
+		msg := fmt.Sprintf("can't write json data in respond, code: %v", c)
+		return errors.Wrapf(err, msg)
 	}
 
 	return nil

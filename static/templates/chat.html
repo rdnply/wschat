@@ -40,7 +40,7 @@
             {{/*                    </svg>*/}}
             {{/*                </div>*/}}
             {{/*            </div>*/}}
-            <div class="chatButton" onclick="startChat()">
+            <div class="chatButton" onclick="startChat(this)">
                 <div class="chatInfo">
                     <div class="image">
 
@@ -53,21 +53,36 @@
                     <p class="message">Start chatting with all users</p>
                 </div>
             </div>
-            {{ range $key, $value := . }}
-                <div class="chatButton">
+            {{ range $name := . }}
+                <div class="chatButton" onclick="startChat(this)">
                     <div class="chatInfo">
                         <div class="image">
 
                         </div>
 
                         <p class="name">
-                            {{ $key }}
+                            {{ $name }}
                         </p>
 
                         <p class="message"></p>
                     </div>
                 </div>
             {{ end }}
+{{/*            {{ range $key, $value := . }}*/}}
+{{/*                <div class="chatButton">*/}}
+{{/*                    <div class="chatInfo">*/}}
+{{/*                        <div class="image">*/}}
+
+{{/*                        </div>*/}}
+
+{{/*                        <p class="name">*/}}
+{{/*                            {{ $key }}*/}}
+{{/*                        </p>*/}}
+
+{{/*                        <p class="message"></p>*/}}
+{{/*                    </div>*/}}
+{{/*                </div>*/}}
+{{/*            {{ end }}*/}}
         </div>
     </div>
 
@@ -385,7 +400,7 @@
                     addChatButton(msg)
                 } else if (msg.from !== undefined) {
                     console.log(msg.from);
-                    receiveMessage(msg);
+                    addReceivedMessage(msg);
                 }
 
             };

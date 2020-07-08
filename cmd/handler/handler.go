@@ -3,9 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"github.com/go-chi/chi"
-	"github.com/rdnply/wschat/cmd/socket"
+	"github.com/rdnply/wschat/cmd/wssocket"
 	"github.com/rdnply/wschat/internal/ehttp"
-	"github.com/rdnply/wschat/internal/inmemory"
 	"github.com/rdnply/wschat/internal/user"
 	"github.com/rdnply/wschat/pkg/log/logger"
 	"html/template"
@@ -13,29 +12,29 @@ import (
 )
 
 type Handler struct {
-	hub       *socket.Hub
-	templates *Templates
+	hub       *wssocket.Hub
+	templates *templates
 	//users     map[string]bool
 	userStorage user.Storage
 	logger      logger.Logger
 }
 
-func New(hub *socket.Hub, log logger.Logger) (*Handler, error) {
+func New(hub *wssocket.Hub, us user.Storage, log logger.Logger) *Handler {
 	return &Handler{
 		hub:         hub,
 		templates:   readTemplates(),
-		userStorage: inmemory.NewUserStorage(),
+		userStorage: us,
 		logger:      log,
-	}, nil
+	}
 }
 
-type Templates struct {
+type templates struct {
 	login *template.Template
 	chat  *template.Template
 }
 
-func readTemplates() *Templates {
-	return &Templates{
+func readTemplates() *templates {
+	return &templates{
 		login: readTemplate("login"),
 		chat:  readTemplate("chat"),
 	}
@@ -56,10 +55,11 @@ func (h *Handler) Routes() chi.Router {
 		r.Get("/login", errorHandling(h.loginForm, h.logger))
 		r.Post("/login", errorHandling(h.register, h.logger))
 		r.Get("/chat", errorHandling(h.chat, h.logger))
+		r.Get("/chat/messages", errorHandling(h.getMessages, h.logger))
 	})
 
 	r.HandleFunc("/ws", func(w http.ResponseWriter, req *http.Request) {
-		socket.ServeWS(h.hub, w, req)
+		wssocket.ServeWS(h.hub, w, req)
 	})
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 

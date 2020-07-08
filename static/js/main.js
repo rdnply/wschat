@@ -8,6 +8,16 @@ function getLoginFromParams() {
     return login;
 }
 
+function getDestination() {
+    var login = document.querySelector('.chatName');
+    login = login.innerText;
+    if (login === "General chat") {
+        return "";
+    }
+
+    return login;
+}
+
 function createChatInfo(user) {
     var divChatInfo = document.createElement('div');
     divChatInfo.classList.add('chatInfo');
@@ -32,6 +42,9 @@ function createChatInfo(user) {
 function createChatButton(user) {
     var divChatButton = document.createElement('div');
     divChatButton.classList.add('chatButton');
+    divChatButton.onclick = function () {
+        startChat(this);
+    };
 
     divChatButton.append(createChatInfo(user));
 
@@ -59,19 +72,26 @@ function createSentMessage(msg) {
     return div;
 }
 
+function addSentMessage(msgText) {
+    var sentMsg = createSentMessage(msgText);
+
+    var convHistory = document.querySelector('.convHistory');
+    convHistory.append(sentMsg);
+}
+
 function sendMessage() {
     event.preventDefault();
     var input = document.querySelector('.replyMessage');
     var msgText = input.value;
     input.value = '';
-    var sentMsg = createSentMessage(msgText);
+    addSentMessage(msgText);
 
-
-    var convHistory = document.querySelector('.convHistory');
-    convHistory.append(sentMsg);
+    var destination = getDestination();
+    console.log('destination= ' + destination)
 
     globalVarForWS.send(JSON.stringify({
         from: userLogin,
+        to: destination,
         message: msgText
     }));
 }
@@ -90,13 +110,51 @@ function createReceivedMessage(msg) {
     return div;
 }
 
-function receiveMessage(msg) {
+function addReceivedMessage(msg) {
     var receivedMsg = createReceivedMessage(msg);
     var convHistory = document.querySelector('.convHistory');
     convHistory.append(receivedMsg);
 }
 
-function startChat() {
-    var login = this.querySelector('.name');
+var HttpClient = function () {
+    this.get = function (aUrl, aCallback) {
+        var anHttpRequest = new XMLHttpRequest();
+        anHttpRequest.onreadystatechange = function () {
+            if (anHttpRequest.readyState === 4 && anHttpRequest.status === 200)
+                aCallback(anHttpRequest.responseText);
+        }
+
+        anHttpRequest.open("GET", aUrl, true);
+        anHttpRequest.send(null);
+    }
+}
+
+function startChat(el) {
+    var companion = el.querySelector('.name');
+    companion = companion.innerText;
+    var login = getLoginFromParams();
+    console.log('companion= ' + companion);
+    console.log('login= ' + login);
+    var chatName = document.querySelector('.chatName');
+    chatName.innerText = companion;
+
+    var client = new HttpClient();
+    client.get('http://localhost:5000/chat/messages?login=' + login + '&companion=' + companion, function (response) {
+        console.log('response= ' + response);
+        var json = JSON.parse(response);
+        console.log('json= ' + json);
+        var convHistory = document.querySelector('.convHistory');
+        convHistory.innerHTML = '';
+
+        if (json !== null) {
+            for (const msg of json) {
+                if (msg.from === login) {
+                    addSentMessage(msg.message);
+                } else {
+                    addReceivedMessage(msg);
+                }
+            }
+        }
+    });
 
 }
