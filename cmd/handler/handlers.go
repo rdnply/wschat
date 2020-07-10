@@ -32,7 +32,7 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) error {
 	} else if h.userStorage.Find(login) {
 		return renderTemplate(w, h.templates.login, invalidLogin{
 			Login: login,
-			Error: "This login is already exist",
+			Error: "This login is already exists",
 		})
 	}
 

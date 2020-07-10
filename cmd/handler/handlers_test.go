@@ -112,7 +112,7 @@ func TestRegisterLoginAlreadyExist(t *testing.T) {
 		Error string
 	}{
 		Login: userLogin,
-		Error: "This login is already exist",
+		Error: "This login is already exists",
 	})
 	if err != nil {
 		t.Fatalf("can't execute template")

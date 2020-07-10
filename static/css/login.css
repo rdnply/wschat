@@ -4,48 +4,48 @@
 }
 
 body {
-    overflow: hidden;
-    background: #fcfdfd;
-    /*background-image: url("https://images.unsplash.com/photo-1463058837219-41e13a132b7d?dpr=1&auto=format&fit=crop&w=1500&h=1000&q=80&cs=tinysrgb&crop=&bg=");*/
     font-family: 'Open Sans', 'Roboto', 'Ubuntu', sans-serif;
     font-size: 16px;
+    width: 100%;
+}
+
+.container {
+    margin: auto;
+    padding: 230px 16px 16px 16px;
+    width: 500px;
+    height: 300px;
 }
 
 .loginForm {
-    width: 340px;
-    height: 340px;
-    border-radius: 5px;
-    margin: 120px auto;
-    font-size: 15px;
-    background: #ececec;
+    text-align: center;
 }
 
-form {
-    padding: 30px;
-}
-
-.text-center {
-    font-weight: 300;
-    line-height: 1.2;
-    text-align: center!important;
-    margin-bottom: 10px;
+.form {
+    box-sizing: border-box;
 }
 
 .input-control {
-    min-height: 24px;
+    box-sizing: border-box;
     width: 100%;
-    margin: 10px;
+    padding: 10px 12px;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    font-size: 16px;
 }
 
-.fields {
-    padding-top: 75px;
+.submit-btn:hover {
+    opacity: 0.8;
 }
 
 .submit-btn {
-    min-height: 24px;
+    background-color: #238eea;
+    color: white;
+    padding: 14px 20px;
+    margin: 8px 0;
+    border: none;
+    cursor: pointer;
     width: 100%;
-    margin: 10px;
-    border-radius: 5px;
 }
 
 .error {
