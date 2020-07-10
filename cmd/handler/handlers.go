@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
-	"github.com/rdnply/wschat/internal/ehttp"
+	"github.com/rdnply/wschat/internal/errorhttp"
 	"html/template"
 	"io"
 	"net/http"
+	"strings"
 )
 
 func (h *Handler) loginForm(w http.ResponseWriter, r *http.Request) error {
@@ -15,17 +16,26 @@ func (h *Handler) loginForm(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) error {
+	type invalidLogin struct{
+		Login string
+		Error string
+	}
+
+	const MinNumSymbolsInLogin = 4
+
 	login := r.PostFormValue("login")
-	if h.userStorage.Find(login) {
-		return renderTemplate(w, h.templates.login, struct {
-			Login string
-			Error string
-		}{
+	if strings.ContainsRune(login, ' ') || len(login) < MinNumSymbolsInLogin {
+		return renderTemplate(w, h.templates.login, invalidLogin{
+			Login: login,
+			Error: "Login must not contain spaces and be less than 4 characters",
+		})
+	} else if h.userStorage.Find(login) {
+		return renderTemplate(w, h.templates.login, invalidLogin{
 			Login: login,
 			Error: "This login is already exist",
 		})
 	}
-	//h.userStorage.Add(login)
+
 	http.Redirect(w, r, "/chat?login="+login, http.StatusSeeOther)
 
 	return nil
@@ -53,7 +63,7 @@ func (h *Handler) getMessages(w http.ResponseWriter, r *http.Request) error {
 	err := respondJSON(w, messages)
 	if err != nil {
 		detail := fmt.Sprintf("can't make json respond with messages: %v", err)
-		return ehttp.InternalServerErr(detail)
+		return errorhttp.InternalServerErr(detail)
 	}
 
 	return nil
@@ -63,7 +73,7 @@ func renderTemplate(w io.Writer, tmpl *template.Template, payload interface{}) e
 	err := tmpl.Execute(w, payload)
 	if err != nil {
 		detail := fmt.Sprintf("can't execute template with name: %v: %v", tmpl.Name(), err)
-		return ehttp.InternalServerErr(detail)
+		return errorhttp.InternalServerErr(detail)
 	}
 
 	return nil

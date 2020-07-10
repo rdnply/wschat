@@ -2,7 +2,7 @@ package handler
 
 import (
 	"bytes"
-	"github.com/rdnply/wschat/cmd/wssocket"
+	"github.com/rdnply/wschat/cmd/socket"
 	"github.com/rdnply/wschat/internal/message"
 	"github.com/rdnply/wschat/internal/user"
 	"github.com/rdnply/wschat/pkg/log/logger"
@@ -60,7 +60,7 @@ func TestLoginForm(t *testing.T) {
 	}
 
 	mockUserStorage := new(mockUserStorage)
-	hub := wssocket.NewHub(mockUserStorage)
+	hub := socket.NewHub(mockUserStorage)
 	mockLogger := new(mockLogger)
 
 	h := New(hub, mockUserStorage, mockLogger)
@@ -77,7 +77,7 @@ func TestLoginForm(t *testing.T) {
 }
 
 func TestRegisterLoginAlreadyExist(t *testing.T) {
-	userLogin := "THIS LOGIN IS ALREADY EXIST"
+	userLogin := "THIS_LOGIN_IS_ALREADY_EXIST"
 	req, err := http.NewRequest("POST", "/login", bytes.NewBufferString("login="+userLogin))
 	if err != nil {
 		t.Fatalf("can't create request %v", err)
@@ -86,7 +86,7 @@ func TestRegisterLoginAlreadyExist(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	mockUserStorage := new(mockUserStorage)
-	hub := wssocket.NewHub(mockUserStorage)
+	hub := socket.NewHub(mockUserStorage)
 	mockLogger := new(mockLogger)
 
 	u := user.User{Login: userLogin}
@@ -124,8 +124,8 @@ func TestRegisterLoginAlreadyExist(t *testing.T) {
 	}
 }
 
-func TestRegisterRedirectionToChat(t *testing.T) {
-	userLogin := "THIS LOGIN IS FREE"
+func TestRegisterIncorrectLogin(t *testing.T) {
+	userLogin := " aa" // this login contains spaces and have lenght less than 4 characters
 	req, err := http.NewRequest("POST", "/login", bytes.NewBufferString("login="+userLogin))
 	if err != nil {
 		t.Fatalf("can't create request %v", err)
@@ -134,10 +134,58 @@ func TestRegisterRedirectionToChat(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	mockUserStorage := new(mockUserStorage)
-	hub := wssocket.NewHub(mockUserStorage)
+	hub := socket.NewHub(mockUserStorage)
 	mockLogger := new(mockLogger)
 
-	u := user.User{Login: "LOGIN OF ANOTHER USER"}
+	u := user.User{Login: userLogin}
+	mockUserStorage.u = u
+
+	h := New(hub, mockUserStorage, mockLogger)
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(errorHandling(h.register, mockLogger))
+
+	handler.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("register handler returned wrong status code: got %v, want %v",
+			status, http.StatusOK)
+	}
+
+	var expected bytes.Buffer
+	tmpl := h.templates.login
+
+	err = tmpl.Execute(&expected, struct {
+		Login string
+		Error string
+	}{
+		Login: userLogin,
+		Error: "Login must not contain spaces and be less than 4 characters",
+	})
+	if err != nil {
+		t.Fatalf("can't execute template")
+	}
+
+	if !bytes.Equal(rr.Body.Bytes(), expected.Bytes()) {
+		t.Errorf("register handler returned wrong body: got\n %v\n, want\n %v\n",
+			rr.Body.String(), expected.String())
+	}
+}
+
+func TestRegisterRedirectionToChat(t *testing.T) {
+	userLogin := "THIS_LOGIN_IS_FREE"
+	req, err := http.NewRequest("POST", "/login", bytes.NewBufferString("login="+userLogin))
+	if err != nil {
+		t.Fatalf("can't create request %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	mockUserStorage := new(mockUserStorage)
+	hub := socket.NewHub(mockUserStorage)
+	mockLogger := new(mockLogger)
+
+	u := user.User{Login: "LOGIN_OF_ANOTHER_USER"}
 	mockUserStorage.u = u
 
 	h := New(hub, mockUserStorage, mockLogger)
@@ -154,7 +202,7 @@ func TestRegisterRedirectionToChat(t *testing.T) {
 }
 
 func TestChatCorrect(t *testing.T) {
-	userLogin := "THIS LOGIN IS FREE"
+	userLogin := "THIS_LOGIN_IS_FREE"
 	req, err := http.NewRequest("GET", "/chat", nil)
 	if err != nil {
 		t.Fatalf("can't create request %v", err)
@@ -165,10 +213,10 @@ func TestChatCorrect(t *testing.T) {
 	req.URL.RawQuery = q.Encode()
 
 	mockUserStorage := new(mockUserStorage)
-	hub := wssocket.NewHub(mockUserStorage)
+	hub := socket.NewHub(mockUserStorage)
 	mockLogger := new(mockLogger)
 
-	u := user.User{Login: "LOGIN OF ANOTHER USER"}
+	u := user.User{Login: "LOGIN_OF_ANOTHER_USER"}
 	mockUserStorage.u = u
 
 	h := New(hub, mockUserStorage, mockLogger)
@@ -209,10 +257,10 @@ func TestChatEmptyLogin(t *testing.T) {
 	req.URL.RawQuery = q.Encode()
 
 	mockUserStorage := new(mockUserStorage)
-	hub := wssocket.NewHub(mockUserStorage)
+	hub := socket.NewHub(mockUserStorage)
 	mockLogger := new(mockLogger)
 
-	u := user.User{Login: "LOGIN OF ANOTHER USER"}
+	u := user.User{Login: "LOGIN_OF_ANOTHER_USER"}
 	mockUserStorage.u = u
 
 	h := New(hub, mockUserStorage, mockLogger)
@@ -229,20 +277,20 @@ func TestChatEmptyLogin(t *testing.T) {
 }
 
 func TestGetMessagesCorrect(t *testing.T) {
-	userLogin := "ANY LOGIN"
+	userLogin := "ANY_LOGIN"
 	req, err := http.NewRequest("GET", "/chat/messages", nil)
 	if err != nil {
 		t.Fatalf("can't create request %v", err)
 	}
 
-	companionLogin := "COMPANION WITH WHOM EXIST MESSAGES"
+	companionLogin := "COMPANION_WITH_WHOM_EXIST_MESSAGES"
 	q := req.URL.Query()
 	q.Add("login", userLogin)
 	q.Add("companion", companionLogin)
 	req.URL.RawQuery = q.Encode()
 
 	mockUserStorage := new(mockUserStorage)
-	hub := wssocket.NewHub(mockUserStorage)
+	hub := socket.NewHub(mockUserStorage)
 	mockLogger := new(mockLogger)
 
 	messages := make(map[string][]*message.Message)
@@ -286,7 +334,7 @@ func TestGetMessagesEmptyQueryParams(t *testing.T) {
 	req.URL.RawQuery = q.Encode()
 
 	mockUserStorage := new(mockUserStorage)
-	hub := wssocket.NewHub(mockUserStorage)
+	hub := socket.NewHub(mockUserStorage)
 	mockLogger := new(mockLogger)
 
 	h := New(hub, mockUserStorage, mockLogger)

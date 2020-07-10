@@ -17,7 +17,7 @@ func New(login string) *User {
 	}
 }
 
-func ToSend(login string) []byte {
+func ConvertToBytes(login string) []byte {
 	u := New(login)
 	b, err := json.Marshal(u)
 	if err != nil {

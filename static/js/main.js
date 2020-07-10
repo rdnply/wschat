@@ -1,5 +1,5 @@
-var globalVarForWS = null;
-var userLogin = null;
+var WSConn = null;
+var userLogin = null; // global variable for current user's login
 
 function getLoginFromParams() {
     var url = new URL(location.href);
@@ -8,6 +8,7 @@ function getLoginFromParams() {
     return login;
 }
 
+// return the use with whom we chatting(may be general chat)
 function getDestination() {
     var login = document.querySelector('.chatName');
     login = login.innerText;
@@ -87,9 +88,8 @@ function sendMessage() {
     addSentMessage(msgText);
 
     var destination = getDestination();
-    console.log('destination= ' + destination)
 
-    globalVarForWS.send(JSON.stringify({
+    WSConn.send(JSON.stringify({
         from: userLogin,
         to: destination,
         message: msgText
@@ -133,28 +133,27 @@ function startChat(el) {
     var companion = el.querySelector('.name');
     companion = companion.innerText;
     var login = getLoginFromParams();
-    console.log('companion= ' + companion);
-    console.log('login= ' + login);
+    // change chat name to user's login whom we chatting
     var chatName = document.querySelector('.chatName');
     chatName.innerText = companion;
 
     var client = new HttpClient();
+    // get old messages between current user(login) and another user(companion)
     client.get('http://localhost:5000/chat/messages?login=' + login + '&companion=' + companion, function (response) {
-        console.log('response= ' + response);
         var json = JSON.parse(response);
-        console.log('json= ' + json);
         var convHistory = document.querySelector('.convHistory');
         convHistory.innerHTML = '';
 
         if (json !== null) {
             for (const msg of json) {
                 if (msg.from === login) {
+                    // display old message as sent
                     addSentMessage(msg.message);
                 } else {
+                    // display old message as received
                     addReceivedMessage(msg);
                 }
             }
         }
     });
-
 }

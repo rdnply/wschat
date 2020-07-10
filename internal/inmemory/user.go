@@ -1,7 +1,6 @@
 package inmemory
 
 import (
-	"fmt"
 	"github.com/rdnply/wschat/internal/message"
 	"github.com/rdnply/wschat/internal/user"
 	"sync"
@@ -54,10 +53,7 @@ func (us *UserStorage) AddMessage(login string, companion string, message *messa
 	messages = append(messages, message)
 	us.st[login].Messages[companion] = messages
 	us.Unlock()
-	fmt.Println("messages", messages)
-	fmt.Println("map", us.st[login].Messages[companion])
 }
-
 
 func (us *UserStorage) GetLogins() []string {
 	keys := make([]string, 0, len(us.st))

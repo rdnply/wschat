@@ -1,7 +1,6 @@
-package wssocket
+package socket
 
 import (
-	"fmt"
 	"github.com/rdnply/wschat/internal/message"
 	"github.com/rdnply/wschat/internal/user"
 )
@@ -32,30 +31,24 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case newClient := <-h.register:
-			//toSend := user.ToSend(newClient.login)
-			//for client := range h.clients {
-			//	select {
-			//	case client.send <- toSend:
-			//	default:
-			//		delete(h.clients, client)
-			//		close(client.send)
-			//	}
-			//}
+			// add new client in general storage of clients and
+			// add in map by login for directed sending messages
 			h.clients[newClient] = true
 			h.users[newClient.login] = newClient
 		case newUser := <-h.addUser:
-			toSend := user.ToSend(newUser.Login)
+			// send message about new added user for all clients
+			clientInBytes := user.ConvertToBytes(newUser.Login)
 			for client := range h.clients {
+				// except to myself
 				if client.login != newUser.Login {
 					select {
-					case client.send <- toSend:
+					case client.send <- clientInBytes:
 					default:
 						delete(h.clients, client)
 						close(client.send)
 					}
 				}
 			}
-
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.users, client.login)
@@ -63,19 +56,21 @@ func (h *Hub) Run() {
 				close(client.send)
 			}
 		case message := <-h.broadcast:
-			fmt.Println(message)
-			toSend := message.ToSend()
+			messageInBytes := message.ConvertToBytes()
+			// send to specific user
 			if message.To != "" {
+				// add message to storage for both users
 				h.userStorage.AddMessage(message.From, message.To, message)
 				h.userStorage.AddMessage(message.To, message.From, message)
 
 				destination := h.users[message.To]
-				destination.send <- toSend
+				destination.send <- messageInBytes
 			} else {
+				// send to all users expect ourselves
 				for client := range h.clients {
 					if message.From != client.login {
 						select {
-						case client.send <- toSend:
+						case client.send <- messageInBytes:
 						default:
 							close(client.send)
 							delete(h.clients, client)
@@ -83,20 +78,6 @@ func (h *Hub) Run() {
 					}
 				}
 			}
-
 		}
 	}
 }
-
-//func (h *Hub) Broadcast(u *user.User) {
-//	done := make(chan bool)
-//
-//	defer close(done)
-//
-//	go func() {
-//		h.broadcast <- u
-//		done <- true
-//	}()
-//
-//	<-done
-//}

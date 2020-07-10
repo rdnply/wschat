@@ -8,7 +8,7 @@ type Message struct {
 	Message string `json:"message"`
 }
 
-func (m *Message) ToSend() []byte {
+func (m *Message) ConvertToBytes() []byte {
 	b, err := json.Marshal(*m)
 	if err != nil {
 		return nil

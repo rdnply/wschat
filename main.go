@@ -6,7 +6,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/rdnply/wschat/cmd/handler"
-	"github.com/rdnply/wschat/cmd/wssocket"
+	"github.com/rdnply/wschat/cmd/socket"
 	"github.com/rdnply/wschat/internal/inmemory"
 	"github.com/rdnply/wschat/pkg/log/logger"
 	"log"
@@ -24,15 +24,12 @@ func main() {
 	flag.Parse()
 
 	logger := initLogger()
-
 	userStorage := inmemory.NewUserStorage()
-
-	hub := wssocket.NewHub(userStorage)
+	hub := socket.NewHub(userStorage)
 
 	go hub.Run()
 
 	h := handler.New(hub, userStorage, logger)
-
 	srv := initServer(h, "", *port)
 
 	const Duration = 5

@@ -1,8 +1,7 @@
-package wssocket
+package socket
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/rdnply/wschat/internal/message"
 	"github.com/rdnply/wschat/internal/user"
 	"log"
@@ -22,21 +21,17 @@ const (
 )
 
 type Client struct {
-	hub *Hub
-	//user *user.User
+	hub   *Hub
 	login string
 	conn  *websocket.Conn
 	send  chan []byte
-	//send chan *message.Message
 }
 
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
-)
-
 func (c *Client) writePump() {
-	ticker := time.NewTicker(pingPeriod)
+	var (
+		newline = []byte{'\n'}
+		ticker  = time.NewTicker(pingPeriod)
+	)
 
 	defer func() {
 		ticker.Stop()
@@ -99,6 +94,10 @@ func (c *Client) readPump() {
 			break
 		}
 
+		// we can receive message of two kinds:
+		// 1) new user registration message
+		// 2) common message
+
 		var u user.User
 		if err := json.Unmarshal(msg, &u); err == nil && u.Login != "" {
 			c.hub.addUser <- &u
@@ -111,19 +110,6 @@ func (c *Client) readPump() {
 		}
 
 		c.hub.broadcast <- &m
-
-		//_, msg, err := c.conn.ReadMessage()
-		//if err != nil {
-		//	if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-		//		log.Printf("error: %v", err)
-		//	}
-		//	break
-		//}
-		//fmt.Println("msg:", msg)
-		//msg = bytes.TrimSpace(bytes.Replace(msg, newline, space, -1))
-		//os.Stdout.Write(msg)
-		//fmt.Println("read")
-		//c.hub.broadcast <- msg
 	}
 }
 
@@ -138,12 +124,12 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "can't open websocket connection", http.StatusBadRequest)
 	}
 
+	// URL query contains login of new user
 	login := r.URL.Query().Get("login")
 	if login == "" {
 		http.Error(w, "can't find login in url params", http.StatusBadRequest)
 	}
 
-	fmt.Println(login)
 	client := &Client{hub: hub, login: login, conn: conn, send: make(chan []byte, 256)}
 	client.hub.register <- client
 	client.hub.addUser <- user.New(login)

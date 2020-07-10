@@ -2,24 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="/static/css/login.css">
     <title>Login</title>
 </head>
 <body>
-<form id="form" action="/login" method="post">
-    <div>
-        {{ with .Error }}
-            <p class="error">{{ . }}</p>
-        {{ end }}
-        <label for="fname">Login:</label><br>
-        <input type="text" id="login" name="login" value="{{ .Login }}"><br>
-        <input type="submit" value="Submit">
-    </div>
-</form>
+<div class="loginForm">
+    <form id="form" action="/login" method="post">
+        <div>
+            {{ with .Error }}
+                <p class="error">{{ . }}</p>
+            {{ end }}
+            <div class="fields">
+{{/*                <label for="fname">Login</label><br>*/}}
+                <h2 class="text-center">Login</h2>
+                <input class="input-control" type="text" placeholder="Type login here..." id="login" name="login" value="{{ .Login }}"><br>
+                <input class="submit-btn" type="submit" value="Submit">
+            </div>
+        </div>
+    </form>
+</div>
 
-<style type="text/css">
-    .error {
-        color: red;
-    }
-</style>
 </body>
 </html>

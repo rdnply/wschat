@@ -1,4 +1,4 @@
-package ehttp
+package errorhttp
 
 import (
 	"fmt"
